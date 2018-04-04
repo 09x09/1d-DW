@@ -7,3 +7,4 @@ kivy garden matplotlib required
 
 # TODO
 write code for hardware
+create background resources
