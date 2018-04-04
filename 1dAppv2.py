@@ -4,7 +4,7 @@ Created on Tue Apr  3 09:15:50 2018
 
 @author: TTM
 """
-
+import matplotlib.pyplot as plt
 import kivy
 kivy.require("1.10.0")
 
@@ -22,7 +22,7 @@ from kivy.core.window import Window
 from kivy.uix.popup import Popup
 
 from kivy.uix.screenmanager import ScreenManager, Screen
-#from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 
 from kivy.graphics import Color, Rectangle, Ellipse
 
@@ -55,32 +55,74 @@ class HomeButton(Button):
         sm.switch_to(HomeScreen("home"))
         
 class dustbin(Button):
-    def __init__(self,name, status):
+    def __init__(self,name, data):
         super(dustbin, self).__init__()
         self.text = name
-        self.status = status
+        self.data = data
+        self.status = data[-1]
+
         
-        if status <= 25:
+        if self.status <= 25:
             self.background_color = [0,255,0,1]
-        elif status <= 60:
+        elif self.status <= 60:
             self.background_color = [255,255,0,1]
-        elif status <= 80:
+        elif self.status <= 80:
             self.background_color = [255,165,0,1]
-        elif status <= 100:
-            self.background_color = [255,0,0,1]    
+        elif self.status <= 100:
+            self.background_color = [255,0,0,1]
+            self.text += " FULL"
 
         
     def on_release(self):
-        stat = StatusScreen(self.text)
+        stat = StatusScreen(self.text, self.data)
         stat.open()
 
 class StatusScreen(Popup):
-    def __init__(self, name):
+    def __init__(self, name, data):
         super(StatusScreen, self).__init__()
-        self.content = Label(text = "hello")
         self.size_hint = (.9,.9)
-        self.title = name                 
+        self.title = name
 
+        last_cleared = 0
+
+        clear_text = ""
+        
+        for i in range(1, len(data)+1):
+            if data[-i]-data[-i-1] < 0:
+                last_cleared = i-1
+                break
+            
+            else:
+                last_cleared = -1
+                
+        days_cleared = last_cleared//24
+                
+        if last_cleared == -1:
+            clear_text = "Bin has not been cleared"
+            
+        else:
+            if days_cleared == 0:
+                clear_text = "Bin was last cleared "+ str(last_cleared) + " hours ago"
+            else:
+                clear_text = "Bin was last cleared "+ str(days_cleared) + " days and " + str(last_cleared-days_cleared*24)+ " hours ago"
+
+        box = BoxLayout(orientation = "vertical")
+        
+        plt.clf()
+        plt.plot(data)
+        
+        label = Label(text = "7 Day Statistics", size_hint = (1, 0.1))
+        label1 = Label(text = clear_text, size_hint = (1, 0.1))
+        
+        box.add_widget(label)
+        box.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+        box.add_widget(label1)
+        
+        with self.canvas:
+            self.add_widget(box)
+                        
+
+        
 class HomeScreen(Screen):
     def __init__(self, name):
         super(HomeScreen, self).__init__()
@@ -139,7 +181,7 @@ class Level1(Screen):
         dlist_keys = list(firebase.get("/Level 1").keys())
         
         for i in dlist_keys:
-            dbin = dustbin(i,dlist[i][-1])
+            dbin = dustbin(i,dlist[i])
             layout2.add_widget(dbin)
             
         label2 = Label(text = name , size_hint = (1, 0.1))
