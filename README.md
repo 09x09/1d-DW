@@ -5,6 +5,4 @@ kivy garden matplotlib required
 >garden install matplotlib
 
 
-# TODO
-write code for hardware
-create background resources
+
